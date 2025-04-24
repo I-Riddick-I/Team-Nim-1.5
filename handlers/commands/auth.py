@@ -6,7 +6,7 @@ from aiogram import Router, html
 from aiogram.filters import Command
 from aiogram.types import Chat, Message, User
 
-import main
+import main.configure
 from main.configure import auth_code, config
 
 auth_router = Router(name='AuthRouter')

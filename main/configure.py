@@ -23,7 +23,7 @@ def _configure() -> None:
 
 if __name__ == "__main__":
     _configure()
-elif __name__ == "configure":
+else:
     auth_code: Optional[int] = None
 
     config = _Config(file_path=CONFIG_PATH)

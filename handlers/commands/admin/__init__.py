@@ -8,7 +8,7 @@ from aiogram.types import Chat, Message, User
 
 from filters.admin import AdminFilter
 from filters.default_text import DefaultTextMessageFilter
-from main import dispatcher
+from main.init_bot import dispatcher
 
 admin_commands_router = Router(name='AdminCommandsRouter')
 

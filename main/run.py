@@ -8,7 +8,7 @@ from handlers import routers
 from main.configure import config as _config
 from utils.bot_token import clear_token
 
-from . import bot, dispatcher
+from .init_bot import bot, dispatcher
 
 
 async def main() -> None:
