@@ -1,18 +1,28 @@
 # /handlers/commands/admin/__init__.py
 
-from typing import Optional
+from typing import Optional, Tuple
 
-from aiogram import Router, html
-from aiogram.filters import Command, CommandStart
+from aiogram import Bot, F, Router
+from aiogram.filters import Command, CommandStart, Filter, invert_f
 from aiogram.types import Chat, Message, User
 
-from filters.admin import AdminFilter
-from filters.default_text import DefaultTextMessageFilter
-from main.init_bot import dispatcher
+from filters.admin_f import AdminsChatFilter, UserAdminFilter
+from filters.authorization_f import AuthStatusFilter
+from main.configure import config as _config
+from main.init_bot import dispatcher as _dispatcher
+
+from .id import id_router as _id_router
+
+_admin_filters: Tuple[Filter, ...] = (
+    UserAdminFilter(),
+    invert_f(AuthStatusFilter()),
+)
 
 admin_commands_router = Router(name='AdminCommandsRouter')
 
-admin_commands_router.message.filter(AdminFilter())
+admin_commands_router.include_routers(_id_router)
+
+admin_commands_router.message.filter(*_admin_filters)
 
 
 @admin_commands_router.message(CommandStart())
@@ -31,31 +41,36 @@ async def command_stop(message: Message) -> None:
     userid: int = user.id
 
     await message.answer('Polling stopped')
-    await dispatcher.stop_polling()
+    await _dispatcher.stop_polling()
 
     print(f'Polling stopped via command /stop by user {username}, id={userid}')
 
 
-@admin_commands_router.message(Command('echo'), DefaultTextMessageFilter())
-async def command_echo(message: Message) -> None:
-    text: Optional[str] = message.text
-    if text is None:
-        pass
-    else:
+@admin_commands_router.message(Command('echo'), F.text)
+async def command_echo_text(message: Message) -> None:
+    text: str = message.html_text
+    if text is not None:
         answer_part: str = text.lstrip('/echo ')
-        await message.answer(answer_part)
+        await message.answer(answer_part) if answer_part else None
 
 
-@admin_commands_router.message(Command('myId'))
-async def command_my_id(message: Message) -> None:
-    user: Optional[User] = message.from_user
-    if user is None:
+@admin_commands_router.message(
+    Command('setAdminsChat'), F.text, invert_f(AdminsChatFilter())
+)
+async def command_set_admins_chat(message: Message):
+    bot: Optional[Bot] = message.bot
+    if bot is None:
         await message.answer('Something went wrong')
-    else:
-        await message.answer(f'Yours id: {html.code(str(user.id))}')
+        return
 
+    admins_chat_id: Optional[int] = _config.admins_chat
+    if admins_chat_id is not None:
+        await bot.send_message(
+            chat_id=admins_chat_id,
+            text='This chat is no longer for admins',
+        )
 
-@admin_commands_router.message(Command('chatId'))
-async def command_chat_id(message: Message) -> None:
     chat: Chat = message.chat
-    await message.answer(f'Chat id: {html.code(str(chat.id))}')
+    _config.admins_chat = chat.id
+    _config.save()
+    await message.answer('Admins chat successfully changed')

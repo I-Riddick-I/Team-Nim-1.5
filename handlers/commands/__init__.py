@@ -2,7 +2,7 @@
 
 from typing import List
 
-from aiogram import Router
+from aiogram import F, Router
 
 from .admin import admin_commands_router
 from .auth import auth_router
@@ -16,3 +16,5 @@ _routers: List[Router] = [
 commands_router = Router(name='CommandsRouter')
 
 commands_router.include_routers(*_routers)
+
+commands_router.message.filter(F.text.startswith('/'))

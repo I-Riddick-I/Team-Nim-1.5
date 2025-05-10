@@ -1,7 +1,9 @@
+# /main/configure.py
+
 import os
 from typing import Optional
 
-from utils.authorization import generate_code
+from utils.authorization import generate_code as _generate_code
 from utils.bot_token import enter_token as _enter_token
 from utils.configurator import Config as _Config
 from utils.configurator import set_default_config as _set_default_config
@@ -29,5 +31,7 @@ else:
     config = _Config(file_path=CONFIG_PATH)
 
     if not config.admins:
-        auth_code = generate_code(20)
-        print(f'\nUse "/auth {auth_code}" in chat with bot\n')
+        auth_code = _generate_code(20)
+
+        print(f'\nAuthCode: {auth_code}')
+        print(f'Use "/auth {auth_code}" in chat with bot\n')

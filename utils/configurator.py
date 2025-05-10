@@ -1,6 +1,7 @@
 import json as _json
 from typing import Any as _Any
 from typing import Dict as _Dict
+from typing import Optional, TypeAlias
 
 
 class InvalidDataException(Exception):
@@ -8,11 +9,16 @@ class InvalidDataException(Exception):
 
 
 class Config(object):
-    _ConfigDataType = _Dict[str, _Any]
+    _ConfigDataType: TypeAlias = _Dict[str, _Any]
     _default_cfg_data: _ConfigDataType = {
         "BOT_TOKEN": "",
         "ADMINS": [],
-        "ADMINS_CHAT": [],
+        "ADMINS_CHAT": None,
+    }
+    _default_cfg_data_types = {
+        "BOT_TOKEN": str,
+        "ADMINS": list,
+        "ADMINS_CHAT": Optional[int],
     }
 
     def __init__(self, file_path: str) -> None:
@@ -27,10 +33,10 @@ class Config(object):
             if key not in self.data:
                 raise InvalidDataException(f'No {key} in config data')
             elif not isinstance(
-                self.data[key], type(Config._default_cfg_data[key])
+                self.data[key], Config._default_cfg_data_types[key]
             ):
                 raise InvalidDataException(
-                    f'{key} value type is not {type(Config._default_cfg_data[key])}'
+                    f'{key} value type is not {Config._default_cfg_data_types[key]}'
                 )
 
     def _get_data(self) -> _Dict[str, _Any]:
@@ -49,6 +55,14 @@ class Config(object):
     def admins(self) -> list[int]:
         return self.data['ADMINS']
 
+    @property
+    def admins_chat(self) -> Optional[int]:
+        return self.data['ADMINS_CHAT']
+
+    @admins_chat.setter
+    def admins_chat(self, chat_id: int) -> None:
+        self.data['ADMINS_CHAT'] = chat_id
+
     def update_data(self) -> None:
         self.data = self._get_data()
 
@@ -59,6 +73,7 @@ class Config(object):
 
 
 def set_default_config(file_path: str) -> None:
+    """Сбрасывает конфигурацию"""
     with open(file_path, mode='w') as cfg_file:
         data = _json.dumps(Config._default_cfg_data)
         cfg_file.write(data)
