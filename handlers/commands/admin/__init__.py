@@ -1,16 +1,17 @@
 # /handlers/commands/admin/__init__.py
 
-from typing import Optional, Tuple
+from typing import Tuple
 
-from aiogram import Bot, F, Router
+from aiogram import F, Router, html
+from aiogram.enums import ChatType
 from aiogram.filters import Command, CommandStart, Filter, invert_f
-from aiogram.types import Chat, Message, User
+from aiogram.types import Chat, Message
 
-from filters.admin_f import AdminsChatFilter, UserAdminFilter
+from filters.admin_f import UserAdminFilter
 from filters.authorization_f import AuthStatusFilter
 from main.configure import config as _config
-from main.init_bot import dispatcher as _dispatcher
 
+from .groups import groups_router as _groups_router
 from .id import id_router as _id_router
 
 _admin_filters: Tuple[Filter, ...] = (
@@ -20,7 +21,7 @@ _admin_filters: Tuple[Filter, ...] = (
 
 admin_commands_router = Router(name='AdminCommandsRouter')
 
-admin_commands_router.include_routers(_id_router)
+admin_commands_router.include_routers(_id_router, _groups_router)
 
 admin_commands_router.message.filter(*_admin_filters)
 
@@ -28,22 +29,6 @@ admin_commands_router.message.filter(*_admin_filters)
 @admin_commands_router.message(CommandStart())
 async def command_start(message: Message) -> None:
     await message.answer('Welcome message')
-
-
-@admin_commands_router.message(Command('stop'))
-async def command_stop(message: Message) -> None:
-    user: Optional[User] = message.from_user
-    if user is None:
-        await message.answer('Something went wrong')
-        return
-
-    username: str = f'@{user.username}'
-    userid: int = user.id
-
-    await message.answer('Polling stopped')
-    await _dispatcher.stop_polling()
-
-    print(f'Polling stopped via command /stop by user {username}, id={userid}')
 
 
 @admin_commands_router.message(Command('echo'), F.text)
@@ -54,23 +39,16 @@ async def command_echo_text(message: Message) -> None:
         await message.answer(answer_part) if answer_part else None
 
 
-@admin_commands_router.message(
-    Command('setAdminsChat'), F.text, invert_f(AdminsChatFilter())
-)
-async def command_set_admins_chat(message: Message):
-    bot: Optional[Bot] = message.bot
-    if bot is None:
-        await message.answer('Something went wrong')
-        return
-
-    admins_chat_id: Optional[int] = _config.admins_chat
-    if admins_chat_id is not None:
-        await bot.send_message(
-            chat_id=admins_chat_id,
-            text='This chat is no longer for admins',
-        )
-
+@admin_commands_router.message(Command('status'))
+async def command_status(message: Message):
     chat: Chat = message.chat
-    _config.admins_chat = chat.id
-    _config.save()
-    await message.answer('Admins chat successfully changed')
+    answer_parts: list[str] = [
+        f'Chat id: {html.code(str(chat.id))}',
+        f'is Admins Chat exists: {_config.admins_chat is not None}',
+        f'is Admins Chat: {chat.id == _config.admins_chat}',
+    ]
+    if chat.type != ChatType.PRIVATE:
+        answer_parts.append(
+            f'is Group Allowed: {chat.id in _config.allowed_groups}'
+        )
+    await message.answer('\n'.join(answer_parts))
