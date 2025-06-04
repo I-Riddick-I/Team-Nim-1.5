@@ -23,8 +23,8 @@ check_text_router.edited_message.filter(*_check_text_filters)
 
 @check_text_router.message()
 @check_text_router.edited_message()
-async def check_text_message(message: Message):
-    await message.answer(
+async def check_text_message(message: Message) -> Message:
+    return await message.answer(
         text='Сообщение на модерации',
         disable_notification=True,
     )

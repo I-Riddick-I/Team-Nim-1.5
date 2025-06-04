@@ -25,3 +25,25 @@ async def command_my_id(message: Message) -> None:
 async def command_chat_id(message: Message) -> None:
     chat: Chat = message.chat
     await message.answer(f'Chat id: {html.code(str(chat.id))}')
+
+
+@id_router.message(Command('messageId'))
+async def command_message_id(message: Message):
+    replied_message: Optional[Message] = message.reply_to_message
+    if replied_message is None:
+        msg_id: int = message.message_id
+    else:
+        msg_id = replied_message.message_id
+    await message.answer(text=html.code(str(msg_id)))
+
+
+@id_router.message(Command('userId'))
+async def command_user_id(message: Message):
+    replied_message: Optional[Message] = message.reply_to_message
+    if replied_message is None:
+        return
+    user: Optional[User] = replied_message.from_user
+    if user is None:
+        return
+    username: str = f'@{user.username}' if user.username else 'UnknownUser'
+    await message.reply(text=f'{username} id: {html.code(str(user.id))}')

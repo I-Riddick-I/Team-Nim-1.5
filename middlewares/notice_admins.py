@@ -1,14 +1,11 @@
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from aiogram import BaseMiddleware, Bot, html
-from aiogram.types import (
-    Chat,
-    LinkPreviewOptions,
-    Message,
-    TelegramObject,
-    User,
-)
+from aiogram.types import Chat
+from aiogram.types import LinkPreviewOptions as LPO
+from aiogram.types import Message, TelegramObject, User
 
+from keyboards.admin_kb import admin_keyboard
 from main.configure import config as _config
 
 
@@ -16,12 +13,11 @@ class NoticeAdminsMiddleware(BaseMiddleware):
     async def __call__(
         self,
         handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
-        event: TelegramObject,
+        message: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
-        if not isinstance(event, Message):
+        if not isinstance(message, Message):
             return
-        message: Message = event
 
         admins_chat_id: Optional[int] = _config.admins_chat
         if admins_chat_id is None:
@@ -33,47 +29,46 @@ class NoticeAdminsMiddleware(BaseMiddleware):
 
         chat: Chat = message.chat
         chat_name: str = chat.full_name
-        chat_link: str
-        if chat.invite_link is None:
-            chat_link = (
-                await chat.create_invite_link(
-                    name=f'{message.message_id} {(await bot.me()).full_name}',
-                    creates_join_request=True,
-                )
-            ).invite_link
-
-        else:
-            chat_link = chat.invite_link
 
         user: Optional[User] = message.from_user
-        username: str = f'@{user.username}' if user else 'UnknownUser'
+        if user is None:
+            return
+        username: str = f'@{user.username}' if user.username else 'UnknownUser'
 
-        notice_message: Optional[str] = data.pop('notice_message', None)
+        notice_message: str = data.pop('notice_message', 'Violations detected')
 
-        if notice_message is not None:
-            # Пересылаем сообщение с потенциальными нарушениями в чат админов
-            forwarded_message: Message = await message.forward(
-                chat_id=admins_chat_id,
-                disable_notification=True,
+        # Пересылаем сообщение с потенциальными нарушениями в чат админов
+        forwarded_message: Message = await message.forward(
+            chat_id=admins_chat_id,
+            disable_notification=True,
+        )
+
+        # Получаем сообщение - ответ бота
+        # (Здесь также происходит удаление исходного сообщения)
+        message_sended_by_bot = await handler(message, data)
+        if not isinstance(message_sended_by_bot, Message):
+            return
+
+        link_to_chat_by_message: Optional[str] = message_sended_by_bot.get_url()
+        notification_text_for_admins: str = '\n\n'.join(
+            (
+                notice_message,
+                f'Sended by {username}',
+                f'in chat: {html.link(chat_name, link_to_chat_by_message if link_to_chat_by_message else '')}',
             )
+        )
 
-            notification_text_parts: List[str] = [
-                notice_message + '\n',
-                f'Sended by {username}\n',
-                f'in chat: {html.link(chat_name, chat_link)}\n',
-            ]
-
-            notification_text_for_admins: str = '\n'.join(
-                notification_text_parts
-            )
-
-            # Отправляем сообщение с подробной информацией в чат админов
-            await bot.send_message(
-                chat_id=admins_chat_id,
-                text=notification_text_for_admins,
-                link_preview_options=LinkPreviewOptions(is_disabled=True),
-                reply_to_message_id=forwarded_message.message_id,
-                disable_notification=True,
-            )
-
-        await handler(message, data)
+        # Отправляем сообщение с подробной информацией в чат админов
+        await bot.send_message(
+            chat_id=admins_chat_id,
+            text=notification_text_for_admins,
+            link_preview_options=LPO(is_disabled=True),
+            reply_to_message_id=forwarded_message.message_id,
+            disable_notification=True,
+            reply_markup=admin_keyboard(
+                chat_id=chat.id,
+                user_id=user.id,
+                username=username,
+                message_id=message_sended_by_bot.message_id,
+            ),
+        )

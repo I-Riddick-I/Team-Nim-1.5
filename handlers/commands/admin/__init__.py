@@ -1,11 +1,12 @@
 # /handlers/commands/admin/__init__.py
 
-from typing import Tuple
+from typing import Optional, Tuple
 
-from aiogram import F, Router, html
+from aiogram import Bot, F, Router, html
 from aiogram.enums import ChatType
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandStart, Filter, invert_f
-from aiogram.types import Chat, Message
+from aiogram.types import Chat, ChatMemberUnion, Message
 
 from filters.admin_f import UserAdminFilter
 from filters.authorization_f import AuthStatusFilter
@@ -28,7 +29,7 @@ admin_commands_router.message.filter(*_admin_filters)
 
 @admin_commands_router.message(CommandStart())
 async def command_start(message: Message) -> None:
-    await message.answer('Welcome message')
+    await message.answer('Use command /addGroup to handle messages in group')
 
 
 @admin_commands_router.message(Command('echo'), F.text)
@@ -39,16 +40,35 @@ async def command_echo_text(message: Message) -> None:
         await message.answer(answer_part) if answer_part else None
 
 
-@admin_commands_router.message(Command('status'))
-async def command_status(message: Message):
+@admin_commands_router.message(Command('info'))
+async def command_info(message: Message):
     chat: Chat = message.chat
     answer_parts: list[str] = [
         f'Chat id: {html.code(str(chat.id))}',
-        f'is Admins Chat exists: {_config.admins_chat is not None}',
-        f'is Admins Chat: {chat.id == _config.admins_chat}',
+        f'Chat type: {chat.type}',
+        f'is Admins Chat exists: {"Yes" if _config.admins_chat is not None else "No"}',
+        f'is Admins Chat: {"Yes" if chat.id == _config.admins_chat else "No"}',
     ]
     if chat.type != ChatType.PRIVATE:
         answer_parts.append(
-            f'is Group Allowed: {chat.id in _config.allowed_groups}'
+            f'is Group Allowed: {"Yes" if chat.id in _config.allowed_groups else "No"}'
         )
-    await message.answer('\n'.join(answer_parts))
+    await message.answer('\n'.join(answer_parts), disable_notification=True)
+
+
+@admin_commands_router.message(Command('adminsList'))
+async def command_admins_list(message: Message, bot: Bot):
+    if _config.admins_chat is None:
+        return
+    admins: list[str] = []
+    for admin_id in _config.admins:
+        try:
+            chat_member: ChatMemberUnion = await bot.get_chat_member(
+                chat_id=_config.admins_chat, user_id=admin_id
+            )
+        except TelegramBadRequest:
+            pass
+        else:
+            username: Optional[str] = chat_member.user.username
+            admins.append(f'@{username}' if username else 'UnknownUser')
+    await message.answer(text='\n'.join(admins), disable_notification=True)

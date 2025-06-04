@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from aiogram.filters import Filter
-from aiogram.types import Message, ResultChatMemberUnion, User
+from aiogram.types import CallbackQuery, Message, ResultChatMemberUnion, User
 
 from main.configure import config as _config
 
@@ -13,8 +13,8 @@ class UserAdminFilter(Filter):
     который ввёл сообщение, администратором
     """
 
-    async def __call__(self, message: Message) -> bool:
-        user: Optional[User] = message.from_user
+    async def __call__(self, event: Message | CallbackQuery) -> bool:
+        user: Optional[User] = event.from_user
         return user.id in _config.admins if user else False
 
 
@@ -41,3 +41,12 @@ class AdminsChatFilter(Filter):
     async def __call__(self, message: Message) -> bool:
         admins_chat_id: Optional[int] = _config.admins_chat
         return message.chat.id == admins_chat_id if admins_chat_id else False
+
+
+class IsOwner(Filter):
+
+    async def __call__(self, message: Message):
+        user: Optional[User] = message.from_user
+        if user is None:
+            return False
+        return user.id == _config.admins[0]

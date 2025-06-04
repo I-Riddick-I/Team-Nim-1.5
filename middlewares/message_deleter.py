@@ -8,11 +8,13 @@ class MessageDeleterMiddleware(BaseMiddleware):
     async def __call__(
         self,
         handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
-        event: TelegramObject,
+        message: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
-        if not isinstance(event, Message):
+        if not isinstance(message, Message):
             return
-        message: Message = event
         await message.delete()
-        await handler(message, data)
+        message_sended_by_bot = await handler(message, data)
+        if not isinstance(message_sended_by_bot, Message):
+            return
+        return message_sended_by_bot

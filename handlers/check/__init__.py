@@ -6,8 +6,9 @@ from aiogram import Router
 from aiogram.enums import ChatType
 from aiogram.filters import Filter, invert_f
 
-from filters.admin_f import UserAdminFilter
+from filters.admin_f import IsAdminInGroup, UserAdminFilter
 from filters.allowed_groups_f import IsGroupAllowed
+from filters.authorization_f import AuthStatusFilter
 from filters.chat_f import ChatFilter
 from middlewares.message_deleter import MessageDeleterMiddleware
 from middlewares.notice_admins import NoticeAdminsMiddleware
@@ -20,8 +21,10 @@ _chat_types: Tuple[ChatType, ...] = (
 )
 
 _check_filters: Tuple[Filter, ...] = (
+    invert_f(AuthStatusFilter()),
     ChatFilter(*_chat_types),
     IsGroupAllowed(),
+    invert_f(IsAdminInGroup()),
     invert_f(UserAdminFilter()),
 )
 
