@@ -16,12 +16,14 @@ class Config(object):
         "ADMINS": [],
         "ADMINS_CHAT": None,
         "ALLOWED_GROUPS": [],
+        "URL_FILTER_LEVEL": 'off',
     }
     _default_cfg_data_types = {
         "BOT_TOKEN": str,
         "ADMINS": list,
         "ADMINS_CHAT": Optional[int],
         "ALLOWED_GROUPS": list,
+        "URL_FILTER_LEVEL": str,
     }
 
     def __init__(self, file_path: PathLike) -> None:
@@ -69,6 +71,14 @@ class Config(object):
     @property
     def allowed_groups(self) -> list[int]:
         return self.data['ALLOWED_GROUPS']
+
+    @property
+    def url_filter_level(self) -> str:
+        return self.data['URL_FILTER_LEVEL']
+
+    @url_filter_level.setter
+    def url_filter_level(self, level: str) -> None:
+        self.data['URL_FILTER_LEVEL'] = level
 
     def update_data(self) -> None:
         self.data = self._get_data()

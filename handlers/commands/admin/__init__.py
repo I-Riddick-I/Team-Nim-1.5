@@ -12,6 +12,7 @@ from filters.admin_f import UserAdminFilter
 from filters.authorization_f import AuthStatusFilter
 from main.configure import config as _config
 
+from .filters import filters_router as _filters_router
 from .groups import groups_router as _groups_router
 from .id import id_router as _id_router
 
@@ -22,7 +23,11 @@ _admin_filters: Tuple[Filter, ...] = (
 
 admin_commands_router = Router(name='AdminCommandsRouter')
 
-admin_commands_router.include_routers(_id_router, _groups_router)
+admin_commands_router.include_routers(
+    _id_router,
+    _groups_router,
+    _filters_router,
+)
 
 admin_commands_router.message.filter(*_admin_filters)
 
@@ -67,8 +72,11 @@ async def command_admins_list(message: Message, bot: Bot):
                 chat_id=_config.admins_chat, user_id=admin_id
             )
         except TelegramBadRequest:
-            pass
+            admins.append(f'{admin_id}')
         else:
             username: Optional[str] = chat_member.user.username
             admins.append(f'@{username}' if username else 'UnknownUser')
-    await message.answer(text='\n'.join(admins), disable_notification=True)
+    await message.answer(
+        text=('Admins:\n' + '\n'.join(admins)),
+        disable_notification=True,
+    )

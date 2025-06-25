@@ -11,7 +11,7 @@ from filters.allowed_groups_f import IsGroupAllowed
 from filters.authorization_f import AuthStatusFilter
 from filters.chat_f import ChatFilter
 from middlewares.message_deleter import MessageDeleterMiddleware
-from middlewares.notice_admins import NoticeAdminsMiddleware
+from middlewares.notice_admins import NoticeAdminsOnDeletedMessageMiddleware
 
 from .check_text import check_text_router
 
@@ -39,8 +39,8 @@ check_router.message.filter(*_check_filters)
 check_router.edited_message.filter(*_check_filters)
 
 
-check_router.message.middleware(NoticeAdminsMiddleware())
-check_router.edited_message.middleware(NoticeAdminsMiddleware())
+check_router.message.middleware(NoticeAdminsOnDeletedMessageMiddleware())
+check_router.edited_message.middleware(NoticeAdminsOnDeletedMessageMiddleware())
 
 check_router.message.middleware(MessageDeleterMiddleware())
 check_router.edited_message.middleware(MessageDeleterMiddleware())

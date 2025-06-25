@@ -6,10 +6,12 @@ from aiogram import F, Router
 
 from .admin import admin_commands_router
 from .auth import auth_router
+from .report import report_router
 
 _routers: List[Router] = [
     admin_commands_router,
     auth_router,
+    report_router,
 ]
 
 

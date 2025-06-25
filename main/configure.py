@@ -8,15 +8,14 @@ from utils.authorization import generate_code as _generate_code
 from utils.bot_token import enter_token as _enter_token
 from utils.configurator import Config as _Config
 from utils.configurator import set_default_config as _set_default_config
+from utils.paths import CONFIGS_DIR
 
-PROJECT_ROOT_DIR: Path = Path(__file__).resolve().parents[1]
-DEFAULT_CONFIG_DIR: Path = PROJECT_ROOT_DIR / 'configs'
-CONFIG_FILE: Path = DEFAULT_CONFIG_DIR / 'config.json'
+CONFIG_FILE: Path = CONFIGS_DIR / 'config.json'
 
 
 def _configure() -> None:
-    if not os.path.exists(DEFAULT_CONFIG_DIR):
-        os.mkdir(DEFAULT_CONFIG_DIR)
+    if not os.path.exists(CONFIGS_DIR):
+        os.mkdir(CONFIGS_DIR)
 
     _set_default_config(CONFIG_FILE)
     config = _Config(file_path=CONFIG_FILE)
